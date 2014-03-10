@@ -62,8 +62,22 @@ class DictExposer(object):
 	
 	@json_expose
 	def index(self):
-		ret = {}
-		ret['_links'] = object_hal_links(self, dirrer=lambda obj: self._dict.iteritems())
+		objects = dict()
+		for key, value in self._dict.iteritems():
+			if hasattr(value, '_preview'):
+				entry = OrderedDict(value._preview().iteritems())
+			else:
+				entry = OrderedDict()
+
+			entry['_links'] = OrderedDict()
+			entry['_links']['self'] = {
+				'href': cp.request.path_info+key+'/'
+				}
+			objects[key] = entry
+
+		ret = OrderedDict()
+		ret['_embedded'] = objects
+		ret['_links'] = object_hal_links(self)
 		return ret
 
 	def __getattr__(self, attr):
@@ -116,6 +130,24 @@ class CubeResource(object):
 		return list(map(OrderedDict, entry_iter))
 	
 	@json_expose
+	def json_table(self, start=0, end=None):
+		# TODO: No need to really iterate if
+		# pydatacube would support slicing
+
+		if end is None:
+			end = len(self._cube)
+		end = int(end)
+		start = int(start)
+
+		if end - start > self.MAX_ENTRIES:
+			raise ValueError("No more than %i entries allowed at a time."%self.MAX_ENTRIES)
+
+		entry_iter = self._cube.toTable()
+		entry_iter = itertools.islice(entry_iter, start, end)
+		return list(map(list, entry_iter))
+
+	
+	@json_expose
 	def length(self):
 		return len(self._cube)
 	
@@ -136,6 +168,9 @@ class CubeResource(object):
 				kwargs[split[0]] = split[1]
 		
 		return self.__filter(*args, **kwargs)
+	
+	def _preview(self):
+		return {'metadata': self._cube.metadata}
 
 class PxResource(CubeResource):
 	def __init__(self, data, metadata):
@@ -149,45 +184,59 @@ class PxResource(CubeResource):
 		return self._data
 	
 	
-	
+
 
 def fetch_px_resource(spec):
-	url = spec['url']
+	metadata = {}
+	if 'file' in spec:
+		data = open(spec['file'])
+		url = "file://"+spec['file']
+	else:
+		url = spec['url']
+		data = urlopen(spec['url'])
+		
 	if 'id' not in spec:
 		parsed = urlparse.urlparse(url)
 		basename = os.path.basename(parsed.path)
 		basename = os.path.splitext(basename)[0]
-		id = '%s_%s'%(parsed.netloc, basename)
+		id = '%s:%s'%(parsed.netloc, basename)
 	else:
 		id = spec['id']
+	
 	metadata = dict(
-		origin_url=url,
 		id=id
 		)
-	
-	return id, PxResource(urlopen(url), metadata)
+	return id, PxResource(data, metadata)
 
 def serve_px_resources(resources):
 	px_resources = {}
 	for spec in resources:
 		try:
-			print >>sys.stderr, spec['url']
 			id, px_resource = fetch_px_resource(spec)
 			px_resources[id] = px_resource
 		except urllib2.HTTPError, e:
 			print >>sys.stderr, e
 		except UnicodeEncodeError, e:
 			print >>sys.stderr, e
-		else:
-			print >>sys.stderr, "Gotit!"
 
 	server = ResourceServer(px_resources)
 	import string
 	dispatch = cp.dispatch.Dispatcher(translate=string.maketrans('', ''))
+
+	my_root = os.path.dirname(os.path.abspath('__file__'))
 	config = {
 		'/': {
 			'request.dispatch': dispatch
+		},
+		'/browser': {
+			'tools.staticdir.on': True,
+			'tools.staticdir.root': my_root,
+			'tools.staticdir.dir': 'browser',
+			'tools.staticdir.index': 'index.html'
 		}
 	}
 	cp.quickstart(server, config=config)
 
+if __name__ == '__main__':
+	import json
+	serve_px_resources(json.load(open(sys.argv[1])))
