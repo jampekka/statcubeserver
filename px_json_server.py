@@ -148,7 +148,10 @@ class CubeResource(object):
 
 	
 	def __filter(self, **kwargs):
-		return CubeResource(self._cube.filter(**kwargs))
+		filters = {}
+		for dim, catstr in kwargs.iteritems():
+			filters[dim] = catstr.split(',')
+		return CubeResource(self._cube.filter(**filters))
 	
 	def __getattr__(self, attr):
 		parts = attr.split('&')
