@@ -27,6 +27,8 @@ body {
 
 .resource_pane {
 	background-color: #f7f7f9;
+	border: 2px solid #e7e7e9;
+	border-radius: 4px;
 	height: 100%;
 	padding: 8px;
 }
@@ -70,15 +72,28 @@ index = (param) ->
 resource = (url, param) ->
 	template = _.template """
 	<h1><%= resource.metadata.label %></h1>
+	<div class="download_formats">
+	<h4>Methods</h4>
+	<% for (var name in formats ) { %>
+		<a class="btn btn-default"
+		href="<%= formats[name].href %>">
+		<%= name %>
+		</a>
+	<% } %>
+	</div>
 	<hr/>
-	<h3>Preview</h3>
 	"""
 	
 	resource_promise = $.getJSON(url)
 
 	resource_promise.done (resource) ->
+		formats = {}
+		for rel, link of resource._links
+			formats[rel] = link
+
 		$('body').append template
 			resource: resource
+			formats: formats
 		
 		columns = []
 		for dim in resource.dimensions

@@ -1,6 +1,6 @@
 @table_view = (el, columns, dataurl, datalen, pagelen=100) ->
 	container = $('<div class="stat_table">').appendTo el
-	hdrdiv = $('<div class="pull-right">').appendTo container
+	hdrdiv = $('<div class="pull-right">')#.appendTo container
 	table = $('<table class="table table-striped">').appendTo container
 	header = $('<thead>').appendTo table
 	headers = $('<tr>').appendTo header
