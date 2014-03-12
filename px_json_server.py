@@ -228,10 +228,17 @@ def serve_px_resources(resources):
 	import string
 	dispatch = cp.dispatch.Dispatcher(translate=string.maketrans('', ''))
 
+	def CORS():
+		cp.response.headers["Access-Control-Allow-Origin"] = "*"
+	
+	cp.tools.CORS = cp.Tool('before_finalize', CORS)
+		
+
 	my_root = os.path.dirname(os.path.abspath('__file__'))
 	config = {
 		'/': {
-			'request.dispatch': dispatch
+			'request.dispatch': dispatch,
+			'tools.CORS.on': True
 		},
 		'/browser': {
 			'tools.staticdir.on': True,
