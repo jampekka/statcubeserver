@@ -39,20 +39,16 @@ def default_hal_dir(obj):
 			continue
 
 		yield (name, getattr(obj, name))
-	
-def object_hal_links(obj, root=None, dirrer=default_hal_dir):
-	if root is None:
-		# TODO: Handle index (and redirect?)!
-		root = cp.request.path_info
 
+def object_hal_links(obj, dirrer=default_hal_dir):
 	links = {}
 	if is_exposed(obj):
-		links['self'] = {'href': root}
+		links['self'] = {'href': cp.url(relative=False)}
 	
 	for name, value in dirrer(obj):
 		if not is_exposed(value):
 			continue
-		link = {'href': root + name}
+		link = {'href': cp.url(name, relative=False)}
 		links[name] = link
 	
 	return links
@@ -72,7 +68,7 @@ class DictExposer(object):
 
 			entry['_links'] = OrderedDict()
 			entry['_links']['self'] = {
-				'href': cp.request.path_info+key+'/'
+				'href': cp.url(key, relative=False)
 				}
 			objects[key] = entry
 
