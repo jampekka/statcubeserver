@@ -247,7 +247,18 @@ def serve_px_resources(resources):
 			'tools.staticdir.index': 'index.html'
 		}
 	}
-	cp.quickstart(server, config=config)
+	
+	cp.config.update(config)
+	app = cp.tree.mount(server, '/', config=config)
+	
+	conffilepath = os.path.join(my_root, 'px_json_server.conf')
+	if os.path.exists(conffilepath):
+		cp.config.update(conffilepath)
+		app.merge(conffilepath)
+
+	cp.engine.signals.subscribe()
+	cp.engine.start()
+	cp.engine.block()
 
 if __name__ == '__main__':
 	import json
