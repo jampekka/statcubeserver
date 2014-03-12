@@ -147,10 +147,6 @@ class CubeResource(object):
 		return list(map(list, entry_iter))
 
 	
-	@json_expose
-	def length(self):
-		return len(self._cube)
-	
 	def __filter(self, **kwargs):
 		return CubeResource(self._cube.filter(**kwargs))
 	
