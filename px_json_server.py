@@ -10,6 +10,7 @@ from cStringIO import StringIO
 import cherrypy as cp
 import pydatacube
 import pydatacube.pcaxis
+import pydatacube.jsonstat
 
 def json_expose(func):
 	func = cp.tools.json_out()(func)
@@ -145,6 +146,11 @@ class CubeResource(object):
 		entry_iter = self._cube.toTable()
 		entry_iter = itertools.islice(entry_iter, start, end)
 		return list(map(list, entry_iter))
+	
+	# TODO: Expose only if can be converted?
+	@json_expose
+	def jsonstat(self):
+		return pydatacube.jsonstat.to_jsonstat(self._cube)
 
 	
 	def __filter(self, **kwargs):
