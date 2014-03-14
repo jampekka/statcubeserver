@@ -216,9 +216,9 @@ def serve_px_resources(resources):
 			id, px_resource = fetch_px_resource(spec)
 			px_resources[id] = px_resource
 		except urllib2.HTTPError, e:
-			print >>sys.stderr, e
-		except UnicodeEncodeError, e:
-			print >>sys.stderr, e
+			print >>sys.stderr, "Fetching file failed", e, spec
+		except pydatacube.pcaxis.PxSyntaxError, e:
+			print >>sys.stderr, "Px parsing failed:", e, spec
 
 	server = ResourceServer(px_resources)
 	import string
