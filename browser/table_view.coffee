@@ -70,6 +70,7 @@ label = (obj) ->
 		param = $.param
 			start: start
 			end: end
+			labels: true
 		url = actual_url + 'json_table?' + param
 		$.ajax(url).done (rows) ->
 			for row in rows

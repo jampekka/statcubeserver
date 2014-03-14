@@ -110,7 +110,8 @@ class CubeResource(object):
 		return spec
 
 	@json_expose
-	def json_entries(self, start=0, end=None):
+	def json_entries(self, start=0, end=None,
+			category_labels=False, value_labels=False):
 		# TODO: No need to really iterate if
 		# pydatacube would support slicing
 
@@ -122,12 +123,14 @@ class CubeResource(object):
 		if end - start > self.MAX_ENTRIES:
 			raise ValueError("No more than %i entries allowed at a time."%self.MAX_ENTRIES)
 
-		entry_iter = self._cube.toEntries()
+		entry_iter = self._cube.toEntries(
+			category_labels=category_labels,
+			value_labels=value_labels)
 		entry_iter = itertools.islice(entry_iter, start, end)
 		return list(map(OrderedDict, entry_iter))
 	
 	@json_expose
-	def json_table(self, start=0, end=None):
+	def json_table(self, start=0, end=None, labels=False):
 		# TODO: No need to really iterate if
 		# pydatacube would support slicing
 
@@ -139,7 +142,7 @@ class CubeResource(object):
 		if end - start > self.MAX_ENTRIES:
 			raise ValueError("No more than %i entries allowed at a time."%self.MAX_ENTRIES)
 
-		entry_iter = self._cube.toTable()
+		entry_iter = self._cube.toTable(labels=labels)
 		entry_iter = itertools.islice(entry_iter, start, end)
 		return list(map(list, entry_iter))
 	
