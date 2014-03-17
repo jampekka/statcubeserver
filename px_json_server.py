@@ -287,7 +287,7 @@ def serve_px_resources(resources):
 	# TODO: Figure out nicer persistence
 	# TODO: Really not necessary to recreate every time!
 	shelve_file_path = my_root + "/px_json_server.shelve"
-	backend = shelve.open(shelve_file_path, flag='c')
+	backend = shelve.open(shelve_file_path, flag='c', protocol=-1)
 	storer = PrefixStore(KeyValueCacheHack(backend))
 	
 	px_resources = {}
