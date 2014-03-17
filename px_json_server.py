@@ -6,6 +6,7 @@ from urllib2 import urlopen
 import urlparse
 import os
 from cStringIO import StringIO
+import shelve
 
 import cherrypy as cp
 import pydatacube
@@ -100,12 +101,20 @@ class ResourceServer(object):
 class CubeResource(object):
 	MAX_ENTRIES=100
 
-	def __init__(self, cube):
-		self._cube = cube
+	def __init__(self, lazycube):
+		# A "lazy" cube so that we don't have to keep
+		# it in memory
+		# TODO: May be confusing
+		self._lazycube = lazycube
+		cube = self._lazycube()
+		# Cache here so we don't have to deserialize
+		# the large cube-object every time
+		self._specification = cube.specification
+		self._metadata = cube.metadata
 
 	@json_expose
 	def index(self):
-		spec = self._cube.specification()
+		spec = self._specification
 		spec['_links'] = object_hal_links(self)
 		return spec
 
@@ -116,14 +125,14 @@ class CubeResource(object):
 		# pydatacube would support slicing
 
 		if end is None:
-			end = len(self._cube)
+			end = self._specification['length']
 		end = int(end)
 		start = int(start)
 
 		if end - start > self.MAX_ENTRIES:
 			raise ValueError("No more than %i entries allowed at a time."%self.MAX_ENTRIES)
 
-		entry_iter = self._cube.toEntries(
+		entry_iter = self._lazycube().toEntries(
 			dimension_labels=dimension_labels,
 			category_labels=category_labels)
 		entry_iter = itertools.islice(entry_iter, start, end)
@@ -135,14 +144,14 @@ class CubeResource(object):
 		# pydatacube would support slicing
 
 		if end is None:
-			end = len(self._cube)
+			end = self._specification['length']
 		end = int(end)
 		start = int(start)
 
 		if end - start > self.MAX_ENTRIES:
 			raise ValueError("No more than %i entries allowed at a time."%self.MAX_ENTRIES)
-
-		entry_iter = self._cube.toTable(labels=labels)
+		
+		entry_iter = self._lazycube().toTable(labels=labels)
 		entry_iter = itertools.islice(entry_iter, start, end)
 		return list(map(list, entry_iter))
 	
@@ -151,7 +160,7 @@ class CubeResource(object):
 			start=0, end=None,
 			dimension_labels=False, category_labels=False,
 			collapse_unique=True):
-		return self._cube.toColumns(
+		return self._lazycube().toColumns(
 			start=start, end=end,
 			dimension_labels=dimension_labels,
 			category_labels=category_labels,
@@ -162,7 +171,7 @@ class CubeResource(object):
 			dimension_labels=False, category_labels=False):
 		if as_values is not None:
 			as_values = as_values.split(',')
-		groups = self._cube.groups(*as_values)
+		groups = self._lazycube().groups(*as_values)
 		groupcols = []
 		for group in groups:
 			col = group.toColumns(
@@ -174,14 +183,14 @@ class CubeResource(object):
 	# TODO: Expose only if can be converted?
 	@json_expose
 	def jsonstat(self):
-		return pydatacube.jsonstat.to_jsonstat(self._cube)
+		return pydatacube.jsonstat.to_jsonstat(self._lazycube())
 
 	
 	def __filter(self, **kwargs):
 		filters = {}
 		for dim, catstr in kwargs.iteritems():
 			filters[dim] = catstr.split(',')
-		return CubeResource(self._cube.filter(**filters))
+		return CubeResource(lambda: self._lazycube().filter(**filters))
 	
 	def __getattr__(self, attr):
 		parts = attr.split('&')
@@ -199,23 +208,21 @@ class CubeResource(object):
 		return self.__filter(*args, **kwargs)
 	
 	def _preview(self):
-		return {'metadata': self._cube.metadata}
+		return {'metadata': self._metadata}
 
 class PxResource(CubeResource):
-	def __init__(self, data, metadata):
-		self._data = data.read()
-		data = StringIO(self._data)
-		cube = pydatacube.pcaxis.to_cube(data)
-		CubeResource.__init__(self, cube)
+	def __init__(self, data, metadata, datastore):
+		px_data = data.read()
+		data = StringIO(px_data)
+		datastore['cube'] = pydatacube.pcaxis.to_cube(data)
+		CubeResource.__init__(self, lambda: datastore['cube'])
+		datastore['pc-axis'] = px_data
 	
 	@cp.expose
 	def pc_axis(self):
-		return self._data
+		return datastore['pc-axis']
 	
-	
-
-
-def fetch_px_resource(spec):
+def fetch_px_resource(spec, datastore):
 	metadata = {}
 	if 'file' in spec:
 		data = open(spec['file'])
@@ -235,19 +242,65 @@ def fetch_px_resource(spec):
 	metadata = dict(
 		id=id
 		)
-	return id, PxResource(data, metadata)
+	return id, PxResource(data, metadata, datastore(id))
+
+class _Substore(object):
+	def __init__(self, prefix, backend):
+		self._prefix = prefix
+		self._backend = backend
+	
+	def _getid(self, attr):
+		return str(self._prefix + '/' + attr)
+
+	def __getitem__(self, attr):
+		return self._backend[self._getid(attr)]
+	
+	def __setitem__(self, attr, value):
+		self._backend[self._getid(attr)] = value
+
+class PrefixStore(object):
+	def __init__(self, backend):
+		self._backend = backend
+	
+	def __call__(self, id):
+		return _Substore(id, self._backend)
+
+class KeyValueCacheHack(object):
+	def __init__(self, backend):
+		self._last_key = None
+		self._last_value = None
+		self._backend = backend
+	
+	def __getitem__(self, key):
+		if key == self._last_key:
+			return self._last_value
+		return self._backend[key]
+	
+	def __setitem__(self, key, value):
+		self._last_key = key
+		self._last_value = value
+		self._backend[key] = value
 
 def serve_px_resources(resources):
+	my_root = os.path.dirname(os.path.abspath('__file__'))
+	
+	# TODO: Figure out nicer persistence
+	# TODO: Really not necessary to recreate every time!
+	shelve_file_path = my_root + "/px_json_server.shelve"
+	backend = shelve.open(shelve_file_path, flag='c')
+	storer = PrefixStore(KeyValueCacheHack(backend))
+	
 	px_resources = {}
+
 	for spec in resources:
 		try:
-			id, px_resource = fetch_px_resource(spec)
+			id, px_resource = fetch_px_resource(spec, storer)
 			px_resources[id] = px_resource
 		except urllib2.HTTPError, e:
 			print >>sys.stderr, "Fetching file failed", e, spec
 		except pydatacube.pcaxis.PxSyntaxError, e:
 			print >>sys.stderr, "Px parsing failed:", e, spec
-
+	backend.sync()
 	server = ResourceServer(px_resources)
 	import string
 	dispatch = cp.dispatch.Dispatcher(translate=string.maketrans('', ''))
@@ -258,7 +311,6 @@ def serve_px_resources(resources):
 	cp.tools.CORS = cp.Tool('before_finalize', CORS)
 		
 
-	my_root = os.path.dirname(os.path.abspath('__file__'))
 	config = {
 		'/': {
 			'request.dispatch': dispatch,
