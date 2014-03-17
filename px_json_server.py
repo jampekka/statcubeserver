@@ -111,7 +111,7 @@ class CubeResource(object):
 
 	@json_expose
 	def json_entries(self, start=0, end=None,
-			dimension_labels_labels=False, value_labels=False):
+			dimension_labels=False, category_labels=False):
 		# TODO: No need to really iterate if
 		# pydatacube would support slicing
 
@@ -125,7 +125,7 @@ class CubeResource(object):
 
 		entry_iter = self._cube.toEntries(
 			dimension_labels=dimension_labels,
-			value_labels=value_labels)
+			category_labels=category_labels)
 		entry_iter = itertools.islice(entry_iter, start, end)
 		return list(map(OrderedDict, entry_iter))
 	
@@ -149,13 +149,27 @@ class CubeResource(object):
 	@json_expose
 	def columns(self,
 			start=0, end=None,
-			dimension_labels=False, value_labels=False,
+			dimension_labels=False, category_labels=False,
 			collapse_unique=True):
 		return self._cube.toColumns(
 			start=start, end=end,
 			dimension_labels=dimension_labels,
-			value_labels=value_labels,
+			category_labels=category_labels,
 			collapse_unique=collapse_unique)
+	
+	@json_expose
+	def group_columns(self, as_values=None,
+			dimension_labels=False, category_labels=False):
+		if as_values is not None:
+			as_values = as_values.split(',')
+		groups = self._cube.groups(*as_values)
+		groupcols = []
+		for group in groups:
+			col = group.toColumns(
+				dimension_labels=dimension_labels,
+				category_labels=category_labels)
+			groupcols.append(col)
+		return groupcols
 
 	# TODO: Expose only if can be converted?
 	@json_expose
