@@ -265,30 +265,14 @@ class PrefixStore(object):
 	def __call__(self, id):
 		return _Substore(id, self._backend)
 
-class KeyValueCacheHack(object):
-	def __init__(self, backend):
-		self._last_key = None
-		self._last_value = None
-		self._backend = backend
-	
-	def __getitem__(self, key):
-		if key == self._last_key:
-			return self._last_value
-		return self._backend[key]
-	
-	def __setitem__(self, key, value):
-		self._last_key = key
-		self._last_value = value
-		self._backend[key] = value
-
 def serve_px_resources(resources):
 	my_root = os.path.dirname(os.path.abspath('__file__'))
 	
 	# TODO: Figure out nicer persistence
 	# TODO: Really not necessary to recreate every time!
 	shelve_file_path = my_root + "/px_json_server.shelve"
-	backend = shelve.open(shelve_file_path, flag='c', protocol=-1)
-	storer = PrefixStore(KeyValueCacheHack(backend))
+	backend = shelve.open(shelve_file_path, flag='c', protocol=-1, writeback=True)
+	storer = PrefixStore(backend)
 	
 	px_resources = {}
 
@@ -300,7 +284,7 @@ def serve_px_resources(resources):
 			print >>sys.stderr, "Fetching file failed", e, spec
 		except pydatacube.pcaxis.PxSyntaxError, e:
 			print >>sys.stderr, "Px parsing failed:", e, spec
-	backend.sync()
+		backend.sync()
 	server = ResourceServer(px_resources)
 	import string
 	dispatch = cp.dispatch.Dispatcher(translate=string.maketrans('', ''))
