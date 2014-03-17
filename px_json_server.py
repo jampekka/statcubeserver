@@ -114,7 +114,7 @@ class CubeResource(object):
 
 	@json_expose
 	def index(self):
-		spec = self._specification
+		spec = OrderedDict(self._specification)
 		spec['_links'] = object_hal_links(self)
 		return spec
 
