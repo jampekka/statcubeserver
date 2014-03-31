@@ -21,6 +21,9 @@ class @Statproxy
 		url = @url + "filter&" + filters.join("&")
 		return new Statproxy(url)
 
+	entries: =>
+		return $.getJSON @url + "/entries"
+
 	columns: =>
 		return $.getJSON @url + "/columns"
 	
