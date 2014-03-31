@@ -99,7 +99,7 @@ class ResourceServer(object):
 		return ret
 
 class CubeResource(object):
-	MAX_ENTRIES=100
+	MAX_ENTRIES=1000
 
 	def __init__(self, lazycube):
 		# A "lazy" cube so that we don't have to keep
@@ -119,7 +119,7 @@ class CubeResource(object):
 		return spec
 
 	@json_expose
-	def json_entries(self, start=0, end=None,
+	def entries(self, start=0, end=None,
 			dimension_labels=False, category_labels=False):
 		# TODO: No need to really iterate if
 		# pydatacube would support slicing
@@ -139,7 +139,7 @@ class CubeResource(object):
 		return list(map(OrderedDict, entry_iter))
 	
 	@json_expose
-	def json_table(self, start=0, end=None, labels=False):
+	def table(self, start=0, end=None, labels=False):
 		# TODO: No need to really iterate if
 		# pydatacube would support slicing
 
