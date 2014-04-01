@@ -167,11 +167,11 @@ class CubeResource(object):
 			collapse_unique=collapse_unique)
 	
 	@json_expose
-	def group_columns(self, as_values=None,
+	def group_for_columns(self, as_values=None,
 			dimension_labels=False, category_labels=False):
 		if as_values is not None:
 			as_values = as_values.split(',')
-		groups = self._lazycube().groups(*as_values)
+		groups = self._lazycube().group_for(*as_values)
 		groupcols = []
 		for group in groups:
 			col = group.toColumns(
@@ -185,7 +185,6 @@ class CubeResource(object):
 	def jsonstat(self):
 		return pydatacube.jsonstat.to_jsonstat(self._lazycube())
 
-	
 	def __filter(self, **kwargs):
 		filters = {}
 		for dim, catstr in kwargs.iteritems():

@@ -27,9 +27,9 @@ class @Statproxy
 	columns: =>
 		return $.getJSON @url + "/columns"
 	
-	group_columns: (as_values, opts={}) =>
+	group_for_columns: (as_values, opts={}) =>
 		as_values = as_values.join(',')
-		url = @url + "/group_columns?"
+		url = @url + "/group_for_columns?"
 		url += $.param as_values: as_values
 		opts = $.param opts
 		if opts
