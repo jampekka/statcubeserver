@@ -49,17 +49,17 @@ Get available datasets: [`/resources/`](http://dev.hel.fi/stats/resources/)
 
 Get dataset metadata and methods: [`/resources/<resource id>/`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/)
 
-Get a filtered dataset: [`/resources/<resource_id>/filter<&col1=cat1,cat2&col2=cat3 ...>`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/)
+Get a filtered dataset: [`/resources/<resource_id>/filter<&col1=cat1,cat2&col2=cat3 ...>`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/)
 
-Get dataset's data (can be filtered) as "entries": [`/resources/<dataset path>/entries`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/entries)
+Get dataset's data (can be filtered) as "entries": [`/resources/<dataset path>/entries`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/entries)
 
-Get data as "table": [`/resources/<dataset path>/table[?start=firstrow&end=lastrow`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/table)
+Get data as "table": [`/resources/<dataset path>/table[?start=firstrow&end=lastrow`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/table)
 
-Get data as "columns": [`/resources/<dataset path>/columns`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/columns)
+Get data as "columns": [`/resources/<dataset path>/columns`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/columns)
 
-Get grouped data ("pivot") as columns: [`/resources/<dataset path>/group_for_columns?as_values=<col1,col2...>`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000/group_for_columns?as_values=vuosi,value)
+Get grouped data ("pivot") as columns: [`/resources/<dataset path>/group_for_columns?as_values=<col1,col2...>`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000/group_for_columns?as_values=vuosi,value)
 
-Get data as JSON-stat: [`/resources/<dataset path>/jsonstat`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/jsonstat)
+Get data as JSON-stat: [`/resources/<dataset path>/jsonstat`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/jsonstat)
 
 ## Demos and advanced examples
 
