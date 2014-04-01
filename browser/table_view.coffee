@@ -71,7 +71,7 @@ label = (obj) ->
 			start: start
 			end: end
 			labels: true
-		url = actual_url + 'json_table?' + param
+		url = actual_url + 'table?' + param
 		$.ajax(url).done (rows) ->
 			for row in rows
 				rowel = $('<tr>').appendTo body
