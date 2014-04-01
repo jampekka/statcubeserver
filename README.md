@@ -37,18 +37,30 @@ if you are using the server, so we can ensure backwards compatibility.
 statistics.  To work with a local version, change the host, port and path
 accordingly (eg. http://dev.hel.fi/stats/ -> http://localhost:8080/).
 
-The API implements the
-[HAL-specification](http://stateless.co/hal_specification.html), so the API can
-be "navigated" using the `_links` and `_embedded` properties of the response
-objects, eg the ["entry point"](http://dev.hel.fi/stats/resources/) listing
-lists all the available datasets as "embedded resources", where the self-link
-points to the table.
+## Examples
 
-A [data table entrypoint](http://dev.hel.fi/stats/resources/aluesarjat_a03s_hki_vakiluku_aidinkieli/)
-lists the available dimensions/columns/categories and other metadata and also
-the supported methods as `_links`.
+Click the links to see example results.
 
-The API is also (partially) wrapped in as Statproxy-class in the Coffeescript
-file `browser/statproxy.coffee`, which is the recommended way for accessing
-the API for most common tasks when using Javascript/Coffeescript. Usage
-examples can be found at [Helsinki Region Infoshare github demos](http://helsinkiregioninfoshare.github.io/hri-demos/).
+Browse datasets with a browser: [`/browser/`](http://dev.hel.fi/stats/browser/)
+
+Preview a dataset and see available methods:  [`/browser/?resource=<resource uri>`](http://dev.hel.fi/stats/browser/?resource=http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot)
+
+Get available datasets: [`/resources/`](http://dev.hel.fi/stats/resources/)
+
+Get dataset metadata and methods: [`/resources/<resource id>/`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/)
+
+Get a filtered dataset: [`/resources/<resource_id>/filter<&col1=cat1,cat2&col2=cat3 ...>`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/)
+
+Get dataset's data (can be filtered) as "entries": [`/resources/<dataset path>/entries`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/entries)
+
+Get data as "table": [`/resources/<dataset path>/table[?start=firstrow&end=lastrow`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/table)
+
+Get data as "columns": [`/resources/<dataset path>/columns`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/columns)
+
+Get grouped data ("pivot") as columns: [`/resources/<dataset path>/group_for_columns?as_values=<col1,col2...>`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000/group_for_columns?as_values=vuosi,value)
+
+Get data as JSON-stat: [`/resources/<dataset path>/jsonstat`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/jsonstat)
+
+## Demos and advanced examples
+
+http://helsinkiregioninfoshare.github.io/hri-demos/
