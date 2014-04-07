@@ -5,6 +5,25 @@ class @Statproxy
 	
 	specification: =>
 		return $.getJSON @url
+	
+	@specification_to_object: (spec) =>
+		dictspec = _.clone spec
+		dictspec.dimensions = {}
+		dictspec.dimension_order = []
+		for dim in spec.dimensions
+			dictdim = dictspec.dimensions[dim.id] = _.clone dim
+			dictspec.dimensions[dim.id] = dictdim
+			dictspec.dimension_order.push dim.id
+			dictdim.categories = {}
+			dictdim.category_order = []
+			if 'categories' not of dim
+				continue
+			for cat in dim.categories
+				dictdim.categories[cat.id] = _.clone cat
+				dictdim.category_order.push cat.id
+		return dictspec
+
+		
 
 	filter: (categories) =>
 		if _.isEmpty(categories)
