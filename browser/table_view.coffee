@@ -54,6 +54,7 @@ label = (obj) ->
 				else
 					filters[dim.id][field] = false
 				refilter()
+			enableCaseInsensitiveFiltering: true
 
 		
 	body = $('<tbody>').appendTo table
