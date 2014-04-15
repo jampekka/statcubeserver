@@ -54,6 +54,7 @@ label = (obj) ->
 		headers.append $("<th>").append dropdown
 		dropdown.multiselect
 			buttonText: do (dim) ->-> label dim
+			buttonTitle: do (dim) ->-> dim.id
 			onChange: do (dim) -> (el, selected) ->
 				field = el.val()
 				if selected
@@ -62,6 +63,7 @@ label = (obj) ->
 					filters[dim.id][field] = false
 				refilter()
 			enableCaseInsensitiveFiltering: true
+		hack_multiselect_tooltips dropdown, dim
 
 		
 	body = $('<tbody>').appendTo table
@@ -104,3 +106,11 @@ label = (obj) ->
 
 	
 	load_data 1
+
+hack_multiselect_tooltips = (el, dim) ->
+	container = el.parent()
+	dropdown = container.find(".multiselect-container")
+	dropdown.find('input[type="checkbox"]').each ->
+		val = $(@).val()
+		$(@).parent().parent().parent().prop "title", val
+	container.find("> .btn-group > .button").prop "title", dim.id
