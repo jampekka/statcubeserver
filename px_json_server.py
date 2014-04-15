@@ -315,7 +315,10 @@ def serve_px_resources(resources):
 		cp.config.update(conffilepath)
 		app.merge(conffilepath)
 
-	cp.engine.signals.subscribe()
+	if hasattr(cp.engine, 'signals'):
+		# Conditional for older cherrpy versions.
+		# Not even sure what this does.
+		cp.engine.signals.subscribe()
 	cp.engine.start()
 	cp.engine.block()
 
