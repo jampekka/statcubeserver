@@ -7,7 +7,8 @@ label = (obj) ->
 #	the state (eg. via pushstate etc)
 @table_view = (el, columns, dataurl, datalen, pagelen=100) ->
 	container = $('<div class="stat_table">').appendTo el
-	filterlink = $('<a class="btn btn-success disabled pull-right">View filtered</a>').appendTo container
+	filterlink = $('<a class="btn btn-success disabled pull-right">View filtered resource</a>').appendTo container
+	filterlink.hide()
 
 	hdrdiv = $('<div class="pull-right">')#.appendTo container
 	table = $('<table class="table table-striped">').appendTo container
@@ -30,10 +31,12 @@ label = (obj) ->
 			actual_url = dataurl
 			filterlink.removeAttr('href')
 			filterlink.addClass 'disabled'
+			filterlink.hide()
 		else
 			actual_url = dataurl + 'filter&' + $.param(param) + "/"
 			filterlink.attr('href', '?resource=' + encodeURIComponent actual_url)
 			filterlink.removeClass 'disabled'
+			filterlink.show()
 		$.getJSON(actual_url).done (spec) ->
 			n_pages = Math.round spec.length/pagelen + 0.5
 			load_data 1
