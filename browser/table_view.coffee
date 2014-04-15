@@ -15,6 +15,8 @@ label = (obj) ->
 	headers = $('<tr>').appendTo header
 	actual_url = dataurl
 	
+	n_pages = Math.round datalen/pagelen + 0.5
+	
 	filters = {}
 	refilter = ->
 		param = {}
@@ -32,7 +34,9 @@ label = (obj) ->
 			actual_url = dataurl + 'filter&' + $.param(param) + "/"
 			filterlink.attr('href', '?resource=' + encodeURIComponent actual_url)
 			filterlink.removeClass 'disabled'
-		load_data 1
+		$.getJSON(actual_url).done (spec) ->
+			n_pages = Math.round spec.length/pagelen + 0.5
+			load_data 1
 
 	for dim in columns
 		if 'categories' not of dim
@@ -60,7 +64,6 @@ label = (obj) ->
 	body = $('<tbody>').appendTo table
 	footer = $('<div class="pull-right">').appendTo container
 	
-	n_pages = Math.round datalen/pagelen + 0.5
 	
 	load_data = (page) ->
 		start = (page-1)*pagelen
@@ -72,6 +75,7 @@ label = (obj) ->
 			start: start
 			end: end
 			labels: true
+		
 		url = actual_url + 'table?' + param
 		$.ajax(url).done (rows) ->
 			for row in rows
