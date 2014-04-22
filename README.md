@@ -6,7 +6,7 @@ functionality.
 
 ## Install and startup
 
-Statcubeserver requires [pydatacube](https://github.com/jampekka/pydatacube/)
+Statcubeserver requires [pydatacube](https://github.com/helsinkiregioninfoshare/pydatacube/)
 (usually latest git, developed in sync), CherryPy 3 and Python 2
 (most likely 2.7).
 
@@ -53,7 +53,7 @@ Get a filtered dataset: [`/resources/<resource_id>/filter<&col1=cat1,cat2&col2=c
 
 Get dataset's data (can be filtered) as "entries": [`/resources/<dataset path>/entries`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/entries)
 
-Get data as "table": [`/resources/<dataset path>/table\[?start=firstrow&end=lastrow`\](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/table)
+Get data as "table": [`/resources/<dataset path>/table<?start=firstrow&end=lastrow>`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/table)
 
 Get data as "columns": [`/resources/<dataset path>/columns`](http://dev.hel.fi/stats/resources/aluesarjat_a01hki_asuntokuntien_tulot/filter&alue=0910000000&tulotyyppi=5&vuosi=2010,2011/columns)
 
