@@ -7,12 +7,45 @@ import urlparse
 import os
 from cStringIO import StringIO
 import shelve
+import itertools
+import re
 
 import cherrypy as cp
 import pydatacube
 import pydatacube.pcaxis
 import pydatacube.jsonstat
 
+jsonp_callback_check = re.compile("^[a-zA-Z0-9_]+$")
+
+def jsonp_tool(callback_name='callback'):
+	def jsonp_handler(*args, **kwargs):
+		request = cp.serving.request
+		orig_handler = request._jsonp_inner_handler
+		if callback_name not in request.params:
+			return orig_handler(*args, **kwargs)
+		callback = request.params.pop(callback_name)
+		
+		if not jsonp_callback_check.match(callback):
+			raise ValueError("Invalid JSONP callback name")
+
+		value = orig_handler(*args, **kwargs)
+		ct = cp.serving.response.headers['Content-Type']
+
+		if not ct.startswith("application/json"):
+			return value
+		
+		cp.serving.response.headers['Content-Type'] = "application/javascript"
+		if isinstance(value, basestring):
+			return "%s(%s)"%(callback, str(value))
+		# We probably have an iterator
+		return itertools.chain((callback, '('), value, (')'))
+		
+	
+	request = cp.serving.request
+	request._jsonp_inner_handler = request.handler
+	request.handler = jsonp_handler
+	
+cp.tools.jsonp = cp.Tool('before_handler', jsonp_tool, priority=31)
 
 def json_expose(func):
 	func = cp.tools.json_out()(func)
@@ -301,6 +334,7 @@ def serve_px_resources(resources):
 		'/': {
 			'request.dispatch': dispatch,
 			'tools.CORS.on': True,
+			'tools.jsonp.on': True
 		},
 		'/browser': {
 			'tools.staticdir.on': True,
