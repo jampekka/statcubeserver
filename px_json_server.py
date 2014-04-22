@@ -13,6 +13,7 @@ import pydatacube
 import pydatacube.pcaxis
 import pydatacube.jsonstat
 
+
 def json_expose(func):
 	func = cp.tools.json_out()(func)
 	func.exposed = True
@@ -265,11 +266,10 @@ class PrefixStore(object):
 		return _Substore(id, self._backend)
 
 def serve_px_resources(resources):
-	my_root = os.path.dirname(os.path.abspath('__file__'))
-	
+	SERVER_ROOT = os.path.dirname(os.path.abspath('__file__'))
 	# TODO: Figure out nicer persistence
 	# TODO: Really not necessary to recreate every time!
-	shelve_file_path = my_root + "/px_json_server.shelve"
+	shelve_file_path = SERVER_ROOT + "/px_json_server.shelve"
 	backend = shelve.open(shelve_file_path, flag='c', protocol=-1, writeback=True)
 	storer = PrefixStore(backend)
 	
@@ -295,13 +295,16 @@ def serve_px_resources(resources):
 		
 
 	config = {
+		'global': {
+			'SERVER_ROOT_DIR': SERVER_ROOT
+		},
 		'/': {
 			'request.dispatch': dispatch,
-			'tools.CORS.on': True
+			'tools.CORS.on': True,
 		},
 		'/browser': {
 			'tools.staticdir.on': True,
-			'tools.staticdir.root': my_root,
+			'tools.staticdir.root': SERVER_ROOT,
 			'tools.staticdir.dir': 'browser',
 			'tools.staticdir.index': 'index.html'
 		}
@@ -310,7 +313,7 @@ def serve_px_resources(resources):
 	cp.config.update(config)
 	app = cp.tree.mount(server, '/', config=config)
 	
-	conffilepath = os.path.join(my_root, 'px_json_server.conf')
+	conffilepath = os.path.join(SERVER_ROOT, 'px_json_server.conf')
 	if os.path.exists(conffilepath):
 		cp.config.update(conffilepath)
 		app.merge(conffilepath)
