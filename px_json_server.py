@@ -164,7 +164,7 @@ class CubeResource(object):
 		start = int(start)
 
 		if end - start > self.MAX_ENTRIES:
-			raise ValueError("No more than %i entries allowed at a time."%self.MAX_ENTRIES)
+			raise ValueError("No more than %i entries allowed at a time. Use 'start' and 'end' parameters to limit the selection."%self.MAX_ENTRIES)
 
 		entry_iter = self._lazycube().toEntries(
 			dimension_labels=dimension_labels,
@@ -183,7 +183,7 @@ class CubeResource(object):
 		start = int(start)
 
 		if end - start > self.MAX_ENTRIES:
-			raise ValueError("No more than %i entries allowed at a time."%self.MAX_ENTRIES)
+			raise ValueError("No more than %i entries allowed at a time. Use 'start' and 'end' parameters to limit the selection."%self.MAX_ENTRIES)
 		
 		entry_iter = self._lazycube().toTable(labels=labels)
 		entry_iter = itertools.islice(entry_iter, start, end)
@@ -194,6 +194,14 @@ class CubeResource(object):
 			start=0, end=None,
 			dimension_labels=False, category_labels=False,
 			collapse_unique=True):
+		if end is None:
+			end = self._specification['length']
+		end = int(end)
+		start = int(start)
+
+		if end - start > self.MAX_ENTRIES:
+			raise ValueError("No more than %i entries allowed at a time. Use 'start' and 'end' parameters to limit the selection."%self.MAX_ENTRIES)
+		
 		return self._lazycube().toColumns(
 			start=start, end=end,
 			dimension_labels=dimension_labels,
@@ -208,6 +216,8 @@ class CubeResource(object):
 		groups = self._lazycube().group_for(*as_values)
 		groupcols = []
 		for group in groups:
+			if len(group) > self.MAX_ENTRIES:
+				raise ValueError("No more than %i entries allowed at a time. Use 'start' and 'end' parameters to limit the selection."%self.MAX_ENTRIES)
 			col = group.toColumns(
 				dimension_labels=dimension_labels,
 				category_labels=category_labels)
