@@ -116,11 +116,12 @@ class DbCubeResource(object):
 	def _get_rows(self, start, end, category_labels):
 		start = int(start)
 		end = int_or_none(end)
+		if end is None:
+			end = len(self._cube)
+		if end - start > self.MAX_ENTRIES:
+			raise ValueError("No more than %i entries allowed at a time. Use 'start' and 'end' parameters to limit the selection."%self.MAX_ENTRIES)
 		result = self._cube.rows(start=start, end=end,
 				category_labels=category_labels)
-		# TODO: Not probably the fastest way
-		if len(result) > self.MAX_ENTRIES:
-			raise ValueError("No more than %i entries allowed at a time. Use 'start' and 'end' parameters to limit the selection."%self.MAX_ENTRIES)
 		return result
 
 	@json_expose
@@ -281,8 +282,11 @@ def serve_sql():
 	if os.path.exists(conffilepath):
 		cp.config.update(conffilepath)
 	
+	def connector():
+		return psycopg2.connect(db_config)
+
 	db_config = cp.config['database.connection']
-	resources = DatabaseExposer(lambda: psycopg2.connect(db_config))
+	resources = DatabaseExposer(connector)
 	server = ResourceServer(resources)
 
 	app = cp.tree.mount(server, '/', config=config)
