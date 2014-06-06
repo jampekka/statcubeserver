@@ -48,7 +48,10 @@ def load_metadata(url):
 
 if __name__ == '__main__':
 	resources = load_metadata(METADATA_URL)
-	con = psycopg2.connect(sys.argv[1])
+	def connect():
+		return psycopg2.connect(sys.argv[1])
+	
+	con = connect()
 	pydatacube.sql.initialize_schema(con)
 	con.commit()
 	for resource in resources:
@@ -56,7 +59,7 @@ if __name__ == '__main__':
 			id = resource['package']['name']
 			print >>sys.stderr, id
 
-			con = psycopg2.connect(sys.argv[1])
+			con = connect()
 			if pydatacube.sql.SqlDataCube.Exists(con, id):
 				continue
 			data = urlopen(resource['url'])

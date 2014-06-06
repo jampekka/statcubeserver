@@ -10,6 +10,10 @@ import shelve
 import itertools
 import re
 import psycopg2
+#import MySQLdb as mysql
+#from MySQLdb.cursors import SSCursor
+#import oursql as mysql
+#import mysql.connector as mysql
 import json
 
 import cherrypy as cp
@@ -103,6 +107,7 @@ def str_to_bool(val):
 
 class DbCubeResource(object):
 	MAX_ENTRIES=1000
+	MAX_GROUPS=100
 
 	def __init__(self, cube):
 		self._cube = cube
@@ -126,14 +131,16 @@ class DbCubeResource(object):
 
 	@json_expose
 	def entries(self, start=0, end=None, category_labels=False):
-		result = self._get_rows(start, end, str_to_bool(category_labels))
 		names = self._cube.dimension_ids()
+		result = self._get_rows(start, end, str_to_bool(category_labels))
 		return [dict(zip(names, row)) for row in result]
 	
 	@json_expose
 	def table(self, start=0, end=None, labels=False):
 		result = self._get_rows(start, end, str_to_bool(labels))
-		return list(result)
+		# mysql.connector's __len__ returns -1 which
+		# breaks using list(result). Nice.
+		return [r for r in result]
 	
 	@json_expose
 	def columns(self, start=0, end=None, category_labels=False,
@@ -158,8 +165,9 @@ class DbCubeResource(object):
 		if as_values is not None:
 			as_values = as_values.split(',')
 		groups = self._cube.group_for(*as_values)
+		if len(groups) > self.MAX_GROUPS:
+			raise ValueError("No more than %i groups allowed at a time. Please use finer filtering."%self.MAX_GROUPS)
 		groupcols = []
-		# TODO: Limit number of groups too!
 		category_labels = str_to_bool(category_labels)
 		start = int(start)
 		end = int_or_none(end)
@@ -176,6 +184,17 @@ class DbCubeResource(object):
 	@json_expose
 	def jsonstat(self):
 		return pydatacube.jsonstat.to_jsonstat(self._cube)
+	
+	@cp.expose
+	def csv(self):
+		cp.response.headers['Content-Type']='text/plain; charset=utf-8'
+		
+		hdr = [d['id'] for d in self._cube.specification['dimensions']]
+		hdr = ",".join(hdr) + "\n"
+		rows = (",".join(row)+"\n" for row in self._cube)
+		return itertools.chain(hdr, rows)
+	
+	
 	
 	def __filter(self, **kwargs):
 		filters = {}
@@ -282,10 +301,23 @@ def serve_sql():
 	if os.path.exists(conffilepath):
 		cp.config.update(conffilepath)
 	
-	def connector():
-		return psycopg2.connect(db_config)
-
 	db_config = cp.config['database.connection']
+	def connector():
+		#import psycopg2.extras
+		#con = psycopg2.extras.LoggingConnection(db_config)
+		#con.initialize(sys.stdout)
+		con = psycopg2.connect(db_config)
+		# Autocommit allows query cache to work. This is a
+		# bit of a hack, the proper way would be to automatically
+		# commit the session after the request. Autocommit is
+		# a bit slower, but with readonly mode shouldn't really
+		# affect anything else.
+		con.set_session(readonly=True, autocommit=True)
+		return con
+		#return mysql.connect(charset='utf8', use_unicode=True,
+		#		cursorclass=SSCursor,
+		#		**db_config)
+
 	resources = DatabaseExposer(connector)
 	server = ResourceServer(resources)
 
