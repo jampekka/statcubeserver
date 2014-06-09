@@ -5,15 +5,13 @@ import urllib2
 from urllib2 import urlopen
 import urlparse
 import os
-from cStringIO import StringIO
+import threading
 import shelve
 import itertools
 import re
 import psycopg2
 #import MySQLdb as mysql
 #from MySQLdb.cursors import SSCursor
-#import oursql as mysql
-#import mysql.connector as mysql
 import json
 
 import cherrypy as cp
@@ -188,13 +186,20 @@ class DbCubeResource(object):
 	@cp.expose
 	def csv(self):
 		cp.response.headers['Content-Type']='text/plain; charset=utf-8'
-		
-		hdr = [d['id'] for d in self._cube.specification['dimensions']]
-		hdr = ",".join(hdr) + "\n"
-		rows = (",".join(row)+"\n" for row in self._cube)
-		return itertools.chain(hdr, rows)
-	
-	
+		# Return a pipe so that the result can be streamed
+		r, w = os.pipe()
+		r, w = os.fdopen(r, 'rb'), os.fdopen(w, 'wb')
+
+		hdr = ",".join(self._cube.dimension_ids())
+		w.write(hdr+"\n")
+		# Launch the query in a new thread, so that it will
+		# asynchronously write to the pipe while Cherrypy
+		# reads it.
+		thread = threading.Thread(target=lambda: self._cube.dump_csv(w))
+		thread.daemon = True
+		thread.start()
+		return r
+	csv._cp_config = {'response.stream': True}
 	
 	def __filter(self, **kwargs):
 		filters = {}
