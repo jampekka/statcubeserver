@@ -13,6 +13,7 @@ import psycopg2
 #import MySQLdb as mysql
 #from MySQLdb.cursors import SSCursor
 import json
+import copy
 
 import cherrypy as cp
 import pydatacube
@@ -51,8 +52,42 @@ def jsonp_tool(callback_name='callback'):
 	
 cp.tools.jsonp = cp.Tool('before_handler', jsonp_tool, priority=31)
 
+class Fakelist(list):
+	def __init__(self, itr):
+		# The JSON encoder checks if the list is empty
+		# as a special case, so we'll have to peek one
+		# element
+		try:
+			next = itr.next()
+			next = [next]
+			self.is_nonzero = True
+		except StopIteration:
+			next = []
+			self.is_nonzero = False
+
+		self.itr = itertools.chain(next, itr)
+	
+	def __iter__(self):
+		return self.itr
+
+	def __nonzero__(self):
+		return self.is_nonzero
+
+class JSONIterEncoder(json.JSONEncoder):
+	def default(self, obj):
+		try:
+			return Fakelist(iter(obj))
+		except TypeError:
+			return json.JSONEncoder.default(self, obj)
+
+
+json_encode = JSONIterEncoder().iterencode
+def streaming_json_handler(*args, **kwargs):
+	value = cp.serving.request._json_inner_handler(*args, **kwargs)
+	return json_encode(value)
+
 def json_expose(func):
-	func = cp.tools.json_out()(func)
+	func = cp.tools.json_out(handler=streaming_json_handler)(func)
 	func.exposed = True
 	return func
 
@@ -107,8 +142,26 @@ class DbCubeResource(object):
 	MAX_ENTRIES=1000
 	MAX_GROUPS=100
 
-	def __init__(self, cube):
-		self._cube = cube
+	def __init__(self, connector, resource_id, filters=None):
+		self._connector = connector
+		self._resource_id = resource_id
+		if filters is None: filters = {}
+		self._filters = filters
+		self.__cube = None
+	
+	def _get_cube(self, bypass_cache=False):
+		if self.__cube:
+			return self.__cube
+		con = self._connector(bypass_cache=bypass_cache)
+		self.__cube = pydatacube.sql.SqlDataCube(con,
+			self._resource_id)
+		if self._filters:
+			self.__cube = self.__cube.filter(**self._filters)
+		return self.__cube
+	
+	@property
+	def _cube(self):
+		return self._get_cube()
 	
 	@json_expose
 	def index(self):
@@ -181,7 +234,10 @@ class DbCubeResource(object):
 	
 	@json_expose
 	def jsonstat(self):
-		return pydatacube.jsonstat.to_jsonstat(self._cube)
+		# Get a "raw access" cube, as large resultsets are
+		# very slow with pgpool
+		cube = self._get_cube(bypass_cache=True)
+		return pydatacube.jsonstat.to_jsonstat(cube)
 	
 	@cp.expose
 	def csv(self):
@@ -189,13 +245,16 @@ class DbCubeResource(object):
 		# Return a pipe so that the result can be streamed
 		r, w = os.pipe()
 		r, w = os.fdopen(r, 'rb'), os.fdopen(w, 'wb')
-
-		hdr = ",".join(self._cube.dimension_ids())
+		
+		# Get a "raw access" cube, as large resultsets are
+		# very slow with pgpool
+		cube = self._get_cube(bypass_cache=True)
+		hdr = ",".join(cube.dimension_ids())
 		w.write(hdr+"\n")
 		# Launch the query in a new thread, so that it will
 		# asynchronously write to the pipe while Cherrypy
 		# reads it.
-		thread = threading.Thread(target=lambda: self._cube.dump_csv(w))
+		thread = threading.Thread(target=lambda: cube.dump_csv(w))
 		thread.daemon = True
 		thread.start()
 		return r
@@ -205,7 +264,11 @@ class DbCubeResource(object):
 		filters = {}
 		for dim, catstr in kwargs.iteritems():
 			filters[dim] = catstr.split(',')
-		return self.__class__(self._cube.filter(**filters))
+
+		new_filters = copy.deepcopy(self._filters)
+		new_filters.update(filters)
+		return self.__class__(self._connector,
+			self._resource_id, new_filters)
 	
 	def __getattr__(self, attr):
 		parts = attr.split('&')
@@ -258,8 +321,7 @@ class DatabaseExposer(object):
 		if resource_id is 'exposed':
 			return object.__getattr__(self, resource_id)
 
-		cube = pydatacube.sql.SqlDataCube(self._connector(), resource_id)
-		return DbCubeResource(cube)
+		return DbCubeResource(self._connector, resource_id)
 	
 
 class ResourceServer(object):
@@ -307,11 +369,18 @@ def serve_sql():
 		cp.config.update(conffilepath)
 	
 	db_config = cp.config['database.connection']
-	def connector():
+	db_config_raw = cp.config.get('database.connection.raw', db_config)
+	def connector(bypass_cache=False):
 		#import psycopg2.extras
 		#con = psycopg2.extras.LoggingConnection(db_config)
 		#con.initialize(sys.stdout)
-		con = psycopg2.connect(db_config)
+
+		# Pgpool is really slow with large queries, so
+		# allow bypassing the cache
+		if not bypass_cache:
+			con = psycopg2.connect(db_config)
+		else:
+			con = psycopg2.connect(db_config_raw)
 		# Autocommit allows query cache to work. This is a
 		# bit of a hack, the proper way would be to automatically
 		# commit the session after the request. Autocommit is
