@@ -52,42 +52,8 @@ def jsonp_tool(callback_name='callback'):
 	
 cp.tools.jsonp = cp.Tool('before_handler', jsonp_tool, priority=31)
 
-class Fakelist(list):
-	def __init__(self, itr):
-		# The JSON encoder checks if the list is empty
-		# as a special case, so we'll have to peek one
-		# element
-		try:
-			next = itr.next()
-			next = [next]
-			self.is_nonzero = True
-		except StopIteration:
-			next = []
-			self.is_nonzero = False
-
-		self.itr = itertools.chain(next, itr)
-	
-	def __iter__(self):
-		return self.itr
-
-	def __nonzero__(self):
-		return self.is_nonzero
-
-class JSONIterEncoder(json.JSONEncoder):
-	def default(self, obj):
-		try:
-			return Fakelist(iter(obj))
-		except TypeError:
-			return json.JSONEncoder.default(self, obj)
-
-
-json_encode = JSONIterEncoder().iterencode
-def streaming_json_handler(*args, **kwargs):
-	value = cp.serving.request._json_inner_handler(*args, **kwargs)
-	return json_encode(value)
-
 def json_expose(func):
-	func = cp.tools.json_out(handler=streaming_json_handler)(func)
+	func = cp.tools.json_out()(func)
 	func.exposed = True
 	return func
 
