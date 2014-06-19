@@ -64,7 +64,8 @@ if __name__ == '__main__':
 				continue
 			data = urlopen(resource['url'])
 			try:
-				cube = pydatacube.pcaxis.to_cube(data)
+				cube = pydatacube.pcaxis.to_cube(data,
+					origin_url=resource['url'])
 			except pydatacube.pcaxis.PxSyntaxError, e:
 				print >>sys.stderr, "Px parsing failed:", e
 				continue
