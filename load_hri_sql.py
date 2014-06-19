@@ -46,10 +46,10 @@ def load_metadata(url):
 	packages = metadata['packages']
 	return list(iterate_resources(packages))
 
-if __name__ == '__main__':
+def load_resources(db_connection, replace=False):
 	resources = load_metadata(METADATA_URL)
 	def connect():
-		return psycopg2.connect(sys.argv[1])
+		return psycopg2.connect(db_connection)
 	
 	con = connect()
 	pydatacube.sql.initialize_schema(con)
@@ -60,8 +60,9 @@ if __name__ == '__main__':
 			print >>sys.stderr, id
 
 			con = connect()
-			if pydatacube.sql.SqlDataCube.Exists(con, id):
-				continue
+			if not replace:
+				if pydatacube.sql.SqlDataCube.Exists(con, id):
+					continue
 			data = urlopen(resource['url'])
 			try:
 				cube = pydatacube.pcaxis.to_cube(data,
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 				print >>sys.stderr, "Px parsing failed:", e
 				continue
 			try:
-				pydatacube.sql.SqlDataCube.FromCube(con, id, cube)
+				pydatacube.sql.SqlDataCube.FromCube(con, id, cube, replace=True)
 				con.commit()
 			finally:
 				con.close()
@@ -78,3 +79,6 @@ if __name__ == '__main__':
 			print >>sys.stderr, e
 	
 
+if __name__ == '__main__':
+	import argh
+	argh.dispatch_command(load_resources)
