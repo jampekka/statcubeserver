@@ -57,7 +57,7 @@ def load_resources(db_connection, replace=False):
 	for resource in resources:
 		try:
 			id = resource['package']['name']
-			print >>sys.stderr, id
+			#print >>sys.stderr, "Loading %s from %s"%(id, resource['url'])
 
 			con = connect()
 			if not replace:
@@ -76,7 +76,19 @@ def load_resources(db_connection, replace=False):
 			finally:
 				con.close()
 		except urllib2.HTTPError, e:
-			print >>sys.stderr, e
+			print >>sys.stderr, "Download error", e, resource['package']['ckan_url']
+			try:
+				from urlparse import urlparse, parse_qs, urlunparse
+				alternate = (r for r in resource['package']['resources'] if r['format'] == 'tietokanta').next()
+				urlparts = urlparse(alternate['url'])
+				url = parse_qs(urlparts.query)['bmark'][0].lower() + ".px"
+				url = '/'.join(url.split('/')[1:])
+				# WTF Guido, why is the URL API so damn horrible?
+				url = urlunparse(list(urlparts[:2]) + [url] + ['']*3)
+				print >>sys.stderr, "The right URL is probably %s"%(url,)
+			except StopIteration:
+				print >>sys.stderr, "'Tietokanta' link missing, can't guess the right url"
+			print >>sys.stderr, ""
 	
 
 if __name__ == '__main__':
